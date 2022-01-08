@@ -128,31 +128,19 @@ def summary_1(start):
     # Create our session (link) from Python to the DB
     session = Session(engine)
 
-    """Using the most active station id, calculate the lowest, highest, and average temperature for all data after the provided date"""
-    # Query all stations - Find most active station
-
-    most_active_station = session.query(measurement.station,func.count(measurement.station)).\
-        group_by(measurement.station).\
-        order_by(func.count(measurement.station).desc()).all()
-    station = most_active_station[0].station
+    """Using all stations, calculate the lowest, highest, and average temperature for all data after the provided date"""
 
     # Query desired information
 
-    sum_info = session.query(func.avg(measurement.tobs),func.min(measurement.tobs),func.max(measurement.tobs)).\
-        filter(measurement.station == station).\
-        filter(measurement.date >= start)
+    sum_info = session.query(measurement.date,func.avg(measurement.tobs),func.min(measurement.tobs),func.max(measurement.tobs)).\
+        filter(measurement.date >= start).group_by(measurement.date).all()    
     
     session.close()
 
-    # Create a dictionary from the row data and append to a list of all precip data from given date
-    summary = []
-    for tave, tmin, tmax in sum_info:
-        sum_dict = {}
-        sum_dict["tave"] = sum_info[0][0]
-        sum_dict["tmin"] = sum_info[0][1]
-        sum_dict["tmax"] = sum_info[0][2]
-        summary.append(sum_dict)
-
+    summary = {}
+    for x in sum_info:
+        summary[x[0]]={"Average":x[1],"Minimum":x[2],"Maximum":x[3]}
+        
     return jsonify(summary)
 
 @app.route("/api/v1.0/startdate/enddate/<start>/<end>")
@@ -160,31 +148,20 @@ def summary_2(start,end):
     # Create our session (link) from Python to the DB
     session = Session(engine)
 
-    """Using the most active station id, calculate the lowest, highest, and average temperature"""
-    # Query all stations - Find most active station
-
-    most_active_station = session.query(measurement.station,func.count(measurement.station)).\
-        group_by(measurement.station).\
-        order_by(func.count(measurement.station).desc()).all()
-    station = most_active_station[0].station
-
+    """Using all stations, calculate the lowest, highest, and average temperature for all dates between provided dates"""
+    
     # Query desired information
 
-    sum_info = session.query(func.avg(measurement.tobs),func.min(measurement.tobs),func.max(measurement.tobs)).\
-        filter(measurement.station == station).\
+    sum_info = session.query(measurement.date,func.avg(measurement.tobs),func.min(measurement.tobs),func.max(measurement.tobs)).\
         filter(measurement.date >= start).\
-        filter(measurement.date <= end)
+        filter(measurement.date <= end).\
+        group_by(measurement.date).all()
     
     session.close()
-
-    # Create a dictionary from the row data and append to a list of all precip data from given date
-    summary = []
-    for tave, tmin, tmax in sum_info:
-        sum_dict = {}
-        sum_dict["tave"] = sum_info[0][0]
-        sum_dict["tmin"] = sum_info[0][1]
-        sum_dict["tmax"] = sum_info[0][2]
-        summary.append(sum_dict)
+    
+    summary = {}
+    for x in sum_info:
+        summary[x[0]]={"Average":x[1],"Minimum":x[2],"Maximum":x[3]}
 
     return jsonify(summary)
 
